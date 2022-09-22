@@ -1,13 +1,12 @@
 const express = require('express');
 const querystring = require('querystring');
-var request = require('request'); // "Request" library
-
-const axios = require('axios');
+var request = require('request');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
+
 var generateRandomString = function (length) {
     var text = '';
     var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
     for (var i = 0; i < length; i++) {
         text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
@@ -18,21 +17,15 @@ var stateKey = 'spotify_auth_state';
 
 module.exports = function (app) {
     app.use((req, res, next) => {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
         res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE');
         res.setHeader('Access-Control-Allow-Methods', 'Content-Type', 'Authorization');
         next();
-    })
-
+    }) 
     app.get('/login', (req, res) => {
         var state = generateRandomString(16);
         res.cookie(stateKey, state);
         try {
-            /* res.status(200).send({
-                button: "<a href='https://accounts.spotify.com/authorize?client_id=" +
-                    process.env.CLIENT_ID +
-                    "&response_type=code&redirect_uri=" + process.env.SPOTIFY_REDIRECT_URI + "&scope=user-top-read'>Sign in</a>"
-            }); */
             res.redirect('https://accounts.spotify.com/authorize?' +
                 querystring.stringify({
                     response_type: 'code',
@@ -75,21 +68,35 @@ module.exports = function (app) {
                     },
                 })
                 .then(response => {
-                    /* res.redirect('/#' +
-                        querystring.stringify({
-                            data: response.data
-                        })); */
-                    res.cookie("context", response.data, {
-                        httpOnly: true
+                    res.cookie("access_token", response.data.access_token, {
+                        httpOnly: true,
                     });
-                    res.redirect("http://localhost:4200"); 
+                    res.cookie("refresh_token", response.data.refresh_token, {
+                        httpOnly: true,
+                    });
+                    res.redirect("http://localhost:4200/home");
                 })
                 .catch(error => {
-                    res.send(error);
+                   console.log(error);
                 });
         }
     });
 
+    app.get('/account', (req, res) => {
+        var access_token = req.cookies.access_token
+        axios({
+                method: 'GET',
+                url: 'https://api.spotify.com/v1/me',
+                headers: {
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+            .then(response => {
+                res.status(200).send(response.data)
+            }).catch((error)=>{
+                console.log("Error")
+            })
+    })
     app.get('/current-session', (req, res) => {
         jwt.verify(req.session.jwt, process.env.JWT_SECRET_KEY, (err, decodedToken) => {
             if (err || !decodedToken) {

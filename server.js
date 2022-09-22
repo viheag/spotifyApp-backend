@@ -16,7 +16,11 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({
     extended: true
 }))
-app.use(cors()).use(cookieParser());
+const corsConfig = {
+    credentials: true,
+    origin: true,
+};
+app.use(cors(corsConfig)).use(cookieParser());
 app.use(helmet());
 app.use(hpp());
 
