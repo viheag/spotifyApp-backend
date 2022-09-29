@@ -21,7 +21,7 @@ module.exports = function (app) {
         res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE');
         res.setHeader('Access-Control-Allow-Methods', 'Content-Type', 'Authorization');
         next();
-    }) 
+    })
     app.get('/login', (req, res) => {
         var state = generateRandomString(16);
         res.cookie(stateKey, state);
@@ -31,10 +31,14 @@ module.exports = function (app) {
                     response_type: 'code',
                     client_id: process.env.CLIENT_ID,
                     redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
-                    state: state
+                    state: state,
+                    scope:"streaming \
+                    user-read-email \
+                    user-read-private\
+                    user-top-read"
                 }));
         } catch (e) {
-            console.log("error.", e);
+            console.log("error.", e.error);
         }
     });
 
@@ -77,7 +81,7 @@ module.exports = function (app) {
                     res.redirect("http://localhost:4200/home");
                 })
                 .catch(error => {
-                   console.log(error);
+                    console.log(error);
                 });
         }
     });
@@ -93,7 +97,7 @@ module.exports = function (app) {
             })
             .then(response => {
                 res.status(200).send(response.data)
-            }).catch((error)=>{
+            }).catch((error) => {
                 console.log("Error")
             })
     })
@@ -112,5 +116,24 @@ module.exports = function (app) {
         res.redirect(
             `/`
         );
+    });
+    app.get('/getTopTracks', (req, res) => {
+        var access_token = req.cookies.access_token 
+        axios({
+                method: 'GET',
+                url: 'https://api.spotify.com/v1/me/top/tracks',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+            .then(response => {
+                res.status(200).send(response.data)
+            }).catch((error) => {
+                console.log(error)
+                res.status(401).send({
+                    mesage: error
+                })
+            })
     });
 }
