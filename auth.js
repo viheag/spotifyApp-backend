@@ -119,9 +119,10 @@ module.exports = function (app) {
     });
     app.get('/getTopTracks', (req, res) => {
         var access_token = req.cookies.access_token 
+        var type_term= req.query.type_term 
         axios({
                 method: 'GET',
-                url: 'https://api.spotify.com/v1/me/top/tracks',
+                url: 'https://api.spotify.com/v1/me/top/tracks?time_range='+type_term,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + access_token
