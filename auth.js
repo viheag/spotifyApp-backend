@@ -137,4 +137,25 @@ module.exports = function (app) {
                 })
             })
     });
+    app.get('/getPlaylists', (req, res) => {
+        var access_token = req.cookies.access_token  
+        var userId= req.query.userId
+        axios({
+                method: 'GET',
+                url: 'https://api.spotify.com/v1/users/'+userId+'/playlists',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+            .then(response => {
+                res.status(200).send(response.data)
+            }).catch((error) => {
+                console.log(error)
+                res.status(401).send({
+                    mesage: error
+                })
+            })
+    });
+
 }
