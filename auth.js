@@ -3,6 +3,9 @@ const querystring = require('querystring');
 var request = require('request');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
+var CLIENT_ID = process.env.CLIENT_ID;
+var CLIENT_SECRET = process.env.CLIENT_SECRET;
+var SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
 
 var generateRandomString = function (length) {
     var text = '';
@@ -29,10 +32,10 @@ module.exports = function (app) {
             res.redirect('https://accounts.spotify.com/authorize?' +
                 querystring.stringify({
                     response_type: 'code',
-                    client_id: process.env.CLIENT_ID,
-                    redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
+                    client_id: CLIENT_ID,
+                    redirect_uri: SPOTIFY_REDIRECT_URI,
                     state: state,
-                    scope:"streaming \
+                    scope: "streaming \
                     user-read-email \
                     user-read-private\
                     user-top-read"
@@ -113,16 +116,16 @@ module.exports = function (app) {
 
     app.get('/logout', (req, res) => {
         req.session = null;
-        res.redirect(
-            `/`
-        );
+        res.clearCookie("access_token");
+        res.clearCookie("refresh_token"); 
+        res.end();
     });
     app.get('/getTopTracks', (req, res) => {
-        var access_token = req.cookies.access_token 
-        var type_term= req.query.type_term 
+        var access_token = req.cookies.access_token
+        var type_term = req.query.type_term
         axios({
                 method: 'GET',
-                url: 'https://api.spotify.com/v1/me/top/tracks?time_range='+type_term,
+                url: 'https://api.spotify.com/v1/me/top/tracks?time_range=' + type_term,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + access_token
@@ -138,11 +141,11 @@ module.exports = function (app) {
             })
     });
     app.get('/getPlaylists', (req, res) => {
-        var access_token = req.cookies.access_token  
-        var userId= req.query.userId
+        var access_token = req.cookies.access_token
+        var userId = req.query.userId
         axios({
                 method: 'GET',
-                url: 'https://api.spotify.com/v1/users/'+userId+'/playlists',
+                url: 'https://api.spotify.com/v1/users/' + userId + '/playlists',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + access_token
@@ -158,4 +161,29 @@ module.exports = function (app) {
             })
     });
 
+    app.get('/refresh_token', (req, res) => {
+        var refresh_token = req.cookies.refresh_token;
+        axios({
+                method: 'post',
+                url: 'https://accounts.spotify.com/api/token',
+                data: querystring.stringify({
+                    grant_type: 'refresh_token',
+                    refresh_token: refresh_token
+                }),
+                headers: {
+                    'content-type': 'application/x-www-form-urlencoded',
+                    Authorization: `Basic ${new Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`,
+                },
+            })
+            .then(response => { 
+                console.log(response)
+                res.cookie("access_token", response.data.access_token, {
+                    httpOnly: true,
+                }); 
+                res.status(200).send(response.data);
+            })
+            .catch(error => { 
+                res.status(error.error.status).send(error.error.status);
+            });
+    }); 
 }
