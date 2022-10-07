@@ -118,8 +118,10 @@ module.exports = function (app) {
         req.session = null;
         res.clearCookie("access_token");
         res.clearCookie("refresh_token"); 
+        res.clearCookie("spotify_auth_state");
         res.end();
     });
+
     app.get('/getTopTracks', (req, res) => {
         var access_token = req.cookies.access_token
         var type_term = req.query.type_term
