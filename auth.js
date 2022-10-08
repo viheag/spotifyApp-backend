@@ -38,7 +38,9 @@ module.exports = function (app) {
                     scope: "streaming \
                     user-read-email \
                     user-read-private\
-                    user-top-read"
+                    user-top-read\
+                    user-follow-read\
+                    "
                 }));
         } catch (e) {
             console.log("error.", e.error);
@@ -117,7 +119,7 @@ module.exports = function (app) {
     app.get('/logout', (req, res) => {
         req.session = null;
         res.clearCookie("access_token");
-        res.clearCookie("refresh_token"); 
+        res.clearCookie("refresh_token");
         res.clearCookie("spotify_auth_state");
         res.end();
     });
@@ -177,15 +179,51 @@ module.exports = function (app) {
                     Authorization: `Basic ${new Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`,
                 },
             })
-            .then(response => { 
-                console.log(response)
+            .then(response => {
                 res.cookie("access_token", response.data.access_token, {
                     httpOnly: true,
-                }); 
+                });
                 res.status(200).send(response.data);
             })
-            .catch(error => { 
+            .catch(error => {
                 res.status(error.error.status).send(error.error.status);
             });
-    }); 
+    });
+    app.get('/getFollowedArtists', (req, res) => {
+        var access_token = req.cookies.access_token
+        axios({
+                method: 'GET',
+                url: 'https://api.spotify.com/v1/me/following?type=artist&limit=20',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+            .then(response => {
+                res.status(200).send(response.data)
+            }).catch((error) => {
+                res.status(error.response.data.error.status).send({
+                    message: error.response.data.error.message
+                })
+            })
+    })
+    app.get('/getInfoArtist', (req, res) => {
+        var access_token = req.cookies.access_token;
+        var artist = req.query.artist;
+        axios({
+                method: 'GET',
+                url: 'https://api.spotify.com/v1/artists/' + artist,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+            .then(response => {
+                res.status(200).send(response.data)
+            }).catch((error) => {
+                res.status(error.response.data.error.status).send({
+                    message: error.response.data.error.message
+                })
+            })
+    })
 }
