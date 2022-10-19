@@ -226,4 +226,23 @@ module.exports = function (app) {
                 })
             })
     })
+    app.get('/search',(req,res)=>{
+        var access_token = req.cookies.access_token; 
+        var busqueda = req.query.busqueda
+        axios({
+                method: 'GET',
+                url: 'https://api.spotify.com/v1/search?q='+busqueda+'&type=track',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + access_token
+                }
+            })
+            .then(response => {
+                res.status(200).send(response.data)
+            }).catch((error) => {
+                res.status(error.response.data.error.status).send({
+                    message: error.response.data.error.message
+                })
+            })  
+    })
 }
